@@ -16,12 +16,17 @@
                 <h1>List of customers</h1>
             </div>
             <div class="col-lg-7 fl-l">
-                <div class="col-lg-6 fl-r">
+                <div class="col-lg-4 fl-r">
+                    <button class="btn btn-outline-light">
+                        <span th:text="${fullName}"></span>
+                    </button>
+                </div>
+                <div class="col-lg-4 fl-r">
                     <button class="btn btn-outline-light" id="btnShowCreateModal">
                         Create customer
                     </button>
                 </div>
-                <div class="col-lg-6 fl-r">
+                <div class="col-lg-4 fl-r">
                     <button class="btn btn-outline-light">
                         Transfer histories
                     </button>
@@ -515,8 +520,21 @@
                 url: page.urls.insertDeposit + "/" + customerId,
                 data: JSON.stringify(depObj)
             })
-                .fail((error) => {
-                    console.log(error);
+                .done((data) => {
+                    console.log(data);
+                    alert("Successful deposit")
+                })
+                .fail((jqXHR) => {
+                    let statusCode = jqXHR.status;
+                    if (statusCode === 401) {
+                        alert("Unauthorized - Your access token has expired or is not valid.");
+                    }
+                    else {
+                        if (statusCode === 403) {
+                            alert("Forbidden - You are not authorized to access this resource.");
+                        }
+                    }
+                    console.log(statusCode);
                 })
         }
 

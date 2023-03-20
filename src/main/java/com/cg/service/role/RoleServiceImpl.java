@@ -26,7 +26,7 @@ public class RoleServiceImpl implements IRoleService {
 
     @Override
     public Boolean existById(Long id) {
-        return null;
+        return roleRepository.existsById(id);
     }
 
     @Override

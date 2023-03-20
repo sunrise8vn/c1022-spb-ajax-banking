@@ -1,11 +1,15 @@
 package com.cg.controller;
 
 
+import com.cg.exception.UnauthorizedException;
 import com.cg.model.Customer;
 import com.cg.model.Deposit;
 import com.cg.model.Transfer;
+import com.cg.model.dto.StaffInfoDTO;
 import com.cg.service.customer.ICustomerService;
 import com.cg.service.deposit.IDepositService;
+import com.cg.service.staff.IStaffService;
+import com.cg.utils.AppUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,7 +30,13 @@ import java.util.Optional;
 public class CustomerController {
 
     @Autowired
+    private AppUtils appUtils;
+
+    @Autowired
     private ICustomerService customerService;
+
+    @Autowired
+    private IStaffService staffService;
 
     @Autowired
     private IDepositService depositService;
@@ -48,9 +58,19 @@ public class CustomerController {
     @GetMapping
     public String showListPage(Model model) {
 
-        List<Customer> customers = customerService.findAll();
+        String username = appUtils.getPrincipalUsername();
 
-        model.addAttribute("customers", customers);
+        Optional<StaffInfoDTO> staffInfoDTO = staffService.getStaffInfoByUsername(username);
+
+        if (!staffInfoDTO.isPresent()) {
+            throw new UnauthorizedException("Staff is not exists");
+        }
+
+        String fullName = staffInfoDTO.get().getFullName();
+
+//        List<Customer> customers = customerService.findAll();
+//
+        model.addAttribute("fullName", fullName);
 
         return "customer/list";
     }

@@ -6,6 +6,7 @@ import com.cg.model.JwtResponse;
 import com.cg.model.Role;
 import com.cg.model.User;
 import com.cg.model.dto.UserDTO;
+import com.cg.model.dto.UserLoginReqDTO;
 import com.cg.service.jwt.JwtService;
 import com.cg.service.role.IRoleService;
 import com.cg.service.user.IUserService;
@@ -78,16 +79,16 @@ public class AuthAPI {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody UserLoginReqDTO userLoginReqDTO) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
+                    new UsernamePasswordAuthenticationToken(userLoginReqDTO.getUsername(), userLoginReqDTO.getPassword()));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             String jwt = jwtService.generateTokenLogin(authentication);
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            User currentUser = userService.getByUsername(user.getUsername());
+            User currentUser = userService.getByUsername(userLoginReqDTO.getUsername());
 
             JwtResponse jwtResponse = new JwtResponse(
                     jwt,

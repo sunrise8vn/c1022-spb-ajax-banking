@@ -13,6 +13,7 @@ import com.cg.utils.AppUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -113,6 +114,8 @@ public class CustomerAPI {
         return new ResponseEntity<>(customer.toCustomerDTO(), HttpStatus.OK);
     }
 
+
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     @PostMapping("/deposit/{customerId}")
     public ResponseEntity<?> deposit(@PathVariable Long customerId, @RequestBody DepositDTO depositDTO) {
 
