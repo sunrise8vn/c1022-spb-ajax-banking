@@ -1,20 +1,21 @@
 package com.cg.service.customer;
 
-import com.cg.model.Customer;
-import com.cg.model.Deposit;
-import com.cg.model.LocationRegion;
-import com.cg.model.Transfer;
+import com.cg.exception.DataInputException;
+import com.cg.model.*;
+import com.cg.model.dto.CustomerCreateAvatarResDTO;
 import com.cg.model.dto.CustomerDTO;
-import com.cg.repository.CustomerRepository;
-import com.cg.repository.DepositRepository;
-import com.cg.repository.LocationRegionRepository;
-import com.cg.repository.TransferRepository;
+import com.cg.repository.*;
+import com.cg.service.uploadMedia.UploadService;
+import com.cg.utils.UploadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -26,6 +27,9 @@ public class CustomerServiceImpl implements ICustomerService{
     private CustomerRepository customerRepository;
 
     @Autowired
+    private CustomerAvatarRepository customerAvatarRepository;
+
+    @Autowired
     private DepositRepository depositRepository;
 
     @Autowired
@@ -33,6 +37,12 @@ public class CustomerServiceImpl implements ICustomerService{
 
     @Autowired
     private LocationRegionRepository locationRegionRepository;
+
+    @Autowired
+    private UploadService uploadService;
+
+    @Autowired
+    private UploadUtils uploadUtils;
 
     @Override
     public List<Customer> findAll() {
@@ -62,6 +72,43 @@ public class CustomerServiceImpl implements ICustomerService{
     @Override
     public Boolean existsByEmailEquals(String email) {
         return customerRepository.existsByEmailEquals(email);
+    }
+
+    @Override
+    public CustomerCreateAvatarResDTO createWithAvatar(Customer customer, MultipartFile avatarFile) {
+
+        LocationRegion locationRegion = customer.getLocationRegion();
+        locationRegionRepository.save(locationRegion);
+
+        customer.setLocationRegion(locationRegion);
+        customerRepository.save(customer);
+
+        CustomerAvatar customerAvatar = new CustomerAvatar();
+        customerAvatar.setCustomer(customer);
+
+        customerAvatarRepository.save(customerAvatar);
+
+        uploadAndSaveCustomerAvatar(avatarFile, customerAvatar);
+
+        return new CustomerCreateAvatarResDTO(customer, locationRegion, customerAvatar.toCustomerAvatarDTO());
+    }
+
+    private void uploadAndSaveCustomerAvatar(MultipartFile file, CustomerAvatar customerAvatar) {
+        try {
+            Map uploadResult = uploadService.uploadImage(file, uploadUtils.buildImageUploadParams(customerAvatar));
+            String fileUrl = (String) uploadResult.get("secure_url");
+            String fileFormat = (String) uploadResult.get("format");
+
+            customerAvatar.setFileName(customerAvatar.getId() + "." + fileFormat);
+            customerAvatar.setFileUrl(fileUrl);
+            customerAvatar.setFileFolder(uploadUtils.IMAGE_UPLOAD_FOLDER);
+            customerAvatar.setCloudId(customerAvatar.getFileFolder() + "/" + customerAvatar.getId());
+            customerAvatarRepository.save(customerAvatar);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new DataInputException("Upload hình ảnh thất bại");
+        }
     }
 
     @Override

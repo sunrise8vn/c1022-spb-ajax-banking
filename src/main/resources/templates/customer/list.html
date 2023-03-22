@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Index</title>
     <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
     <link rel="stylesheet" href="/assets/sweetalert2/v11.7.3/sweetalert2.min.css">
+    <link rel="stylesheet" href="/assets/css/preview-image.css">
     <link rel="stylesheet" href="/assets/css/custom-style.css">
 </head>
 <body>
@@ -77,10 +79,11 @@
                 </tbody>
             </table>
         </div>
+
+        <th:block th:replace="customer/modal_create" />
+        <th:block th:replace="customer/modal_update" />
     </div>
 
-    <th:block th:replace="customer/modal_create" />
-    <th:block th:replace="customer/modal_update" />
 
     <!-- Modal Deposit -->
     <div class="modal fade" id="modalDeposit" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -255,6 +258,20 @@
         page.dialogs.elements.btnTransfer = $("#btnTransfer");
 
 
+        page.dialogs.elements.wrapper = $("section .wrapper");
+        page.dialogs.elements.productName = $("#productName");
+        page.dialogs.elements.description = $("#description");
+        page.dialogs.elements.imageFile = $("#imageFile");
+        page.dialogs.elements.wrapperContent = $("section .wrapper .content");
+        page.dialogs.elements.imagePreview = $("section .image-preview");
+        page.dialogs.elements.imagePreviewCanvas = $("section .image-preview canvas");
+        page.dialogs.elements.canvas = $("#canvas");
+        page.dialogs.elements.context = page.dialogs.elements.canvas[0].getContext('2d');
+        page.dialogs.elements.imagePreviewCanvas.css("display", "none");
+        page.dialogs.elements.divImagePreview = $("div.image-preview, div.file-name");
+        page.dialogs.elements.btnClearImagePreview = $(".clear-image-preview i");
+
+
         page.elements.btnUpdateCustomer.on('click', () => {
             let fullName = $('#fullNameUp').val();
             let email = $('#emailUp').val();
@@ -288,7 +305,6 @@
 
                         addEventEditClick();
 
-                        addEventDeleteClick();
 
                         Swal.fire({
                             position: 'top-end',
@@ -327,7 +343,6 @@
 
                 addEventDepositClick();
 
-                addEventDeleteClick();
 
                 Swal.fire({
                     position: 'top-end',
@@ -503,7 +518,6 @@
 
                     addEventDepositClick();
 
-                    addEventDeleteClick();
                 })
                 .fail((error) => {
                     console.log(error);
@@ -756,7 +770,6 @@
 
                     addEventEditClick();
 
-                    addEventDeleteClick();
 
                     addEventDepositClick();
 
@@ -847,18 +860,45 @@
                 })
         }
 
-        page.commands.loadData = () => {
-            page.loadData.getAllCustomers();
+        page.dialogs.commands.loadImageToCanvas = (imageFile) => {
+            page.dialogs.elements.imagePreviewCanvas.css("display", "");
+            page.dialogs.elements.wrapper.addClass("active");
+            page.dialogs.elements.wrapperContent.css("opacity", 0);
 
-            page.loadData.getAllProvinces().then(() => {
-                let provinceId = page.dialogs.elements.provinceCre.val();
+            let imageObj = new Image();
 
-                page.loadData.getAllDistrictsByProvinceId(provinceId, page.dialogs.elements.districtCre).then(() => {
-                    let districtId = page.dialogs.elements.districtCre.val();
+            imageObj.onload = function () {
+                page.dialogs.elements.context.canvas.width = imageObj.width;
+                page.dialogs.elements.context.canvas.height = imageObj.height;
+                page.dialogs.elements.context.drawImage(imageObj, 0, 0, imageObj.width, imageObj.height);
+            };
 
-                    page.loadData.getAllWardsByDistrictId(districtId, page.dialogs.elements.wardCre);
-                });
-            });
+            imageObj.src = URL.createObjectURL(imageFile)
+        }
+
+        page.dialogs.commands.changeImagePreview = () => {
+            let imageFile = page.dialogs.elements.imageFile[0].files[0];
+
+            if (imageFile) {
+                let reader = new FileReader();
+
+                reader.readAsDataURL(imageFile);
+
+                reader.onload = function(e){
+                    if (e.target.readyState === FileReader.DONE) {
+                        page.dialogs.commands.loadImageToCanvas(imageFile);
+                    }
+                }
+            } else {
+                page.dialogs.elements.clearImagePreview();
+            }
+        }
+
+        page.dialogs.elements.clearImagePreview = () => {
+            page.dialogs.elements.imageFile.val("");
+            page.dialogs.elements.imagePreviewCanvas.css("display", "none");
+            page.dialogs.elements.wrapper.removeClass("active");
+            page.dialogs.elements.wrapperContent.css("opacity", 1);
         }
 
         page.commands.handleChangeProvince = (elemProvince, elemDistrict, elemWard) => {
@@ -881,7 +921,29 @@
             })
         }
 
+        page.commands.loadData = () => {
+            page.loadData.getAllCustomers();
+
+            page.loadData.getAllProvinces().then(() => {
+                let provinceId = page.dialogs.elements.provinceCre.val();
+
+                page.loadData.getAllDistrictsByProvinceId(provinceId, page.dialogs.elements.districtCre).then(() => {
+                    let districtId = page.dialogs.elements.districtCre.val();
+
+                    page.loadData.getAllWardsByDistrictId(districtId, page.dialogs.elements.wardCre);
+                });
+            });
+        }
+
         page.initializeControlEvent = () => {
+
+            page.dialogs.elements.divImagePreview.on('click', () => {
+                page.dialogs.elements.imageFile.trigger('click');
+            })
+
+            page.dialogs.elements.imageFile.on("change", function () {
+                page.dialogs.commands.changeImagePreview();
+            });
 
             page.elements.btnShowCreateModal.on('click', () => {
                 page.dialogs.elements.modalCreateCustomer.modal('show');

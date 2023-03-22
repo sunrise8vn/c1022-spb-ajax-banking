@@ -18,7 +18,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Getter
 @Setter
-@Accessors(chain = true)
 public class CustomerDTO implements Validator {
 
     private Long id;
@@ -26,6 +25,8 @@ public class CustomerDTO implements Validator {
     private String email;
     private String phone;
     private BigDecimal balance;
+
+    private CustomerAvatarDTO customerAvatar;
 
     @Valid
     private LocationRegionDTO locationRegion;

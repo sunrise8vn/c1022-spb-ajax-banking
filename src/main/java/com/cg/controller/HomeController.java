@@ -9,11 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class HomeController {
 
     @RequestMapping("")
-    public String showHomePage(Model model) {
-        String fullName = "Marina Michel 2345";
-        model.addAttribute("fullName", fullName);
-
-        return "home";
+    public String showHomePage() {
+        return "redirect:/customers";
     }
 
     @RequestMapping("/temp")

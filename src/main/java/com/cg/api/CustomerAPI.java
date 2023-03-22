@@ -3,13 +3,15 @@ package com.cg.api;
 import com.cg.exception.EmailExistsException;
 import com.cg.exception.ResourceNotFoundException;
 import com.cg.model.Customer;
+import com.cg.model.CustomerAvatar;
 import com.cg.model.Deposit;
 import com.cg.model.LocationRegion;
-import com.cg.model.dto.CustomerDTO;
-import com.cg.model.dto.DepositDTO;
-import com.cg.model.dto.LocationRegionDTO;
+import com.cg.model.dto.*;
 import com.cg.service.customer.ICustomerService;
+import com.cg.service.customerAvatar.ICustomerAvatarService;
+import com.cg.service.uploadMedia.UploadService;
 import com.cg.utils.AppUtils;
+import com.cg.utils.UploadUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +36,16 @@ public class CustomerAPI {
     private ICustomerService customerService;
 
     @Autowired
+    private ICustomerAvatarService customerAvatarService;
+
+    @Autowired
     private AppUtils appUtils;
+
+    @Autowired
+    private UploadUtils uploadUtils;
+
+    @Autowired
+    private UploadService uploadService;
 
 
     @GetMapping
@@ -90,6 +103,60 @@ public class CustomerAPI {
         customerDTO = customer.toCustomerDTO();
 
         return new ResponseEntity<>(customerDTO, HttpStatus.CREATED);
+    }
+
+
+    @PostMapping("/create-with-avatar")
+    public ResponseEntity<?> createWithAvatar(CustomerCreateAvatarReqDTO customerCreateAvatarReqDTO) {
+
+        MultipartFile file = customerCreateAvatarReqDTO.getFile();
+
+        LocationRegionDTO locationRegionDTO = customerCreateAvatarReqDTO.toLocationRegionDTO();
+        CustomerDTO customerDTO = customerCreateAvatarReqDTO.toCustomerDTO(locationRegionDTO);
+
+        Boolean existEmail = customerService.existsByEmailEquals(customerDTO.getEmail());
+
+        if (existEmail) {
+            throw new EmailExistsException("The email is exists");
+        }
+
+        if (file != null) {
+            Customer customer = customerDTO.toCustomer();
+            CustomerCreateAvatarResDTO customerCreateAvatarResDTO = customerService.createWithAvatar(customer, file);
+
+            return new ResponseEntity<>(customerCreateAvatarResDTO, HttpStatus.CREATED);
+        }
+        else {
+            customerDTO.setId(null);
+            customerDTO.setBalance(BigDecimal.ZERO);
+            customerDTO.getLocationRegion().setId(null);
+
+            Customer customer = customerDTO.toCustomer();
+            customer = customerService.save(customer);
+
+            customerDTO = customer.toCustomerDTO();
+
+            return new ResponseEntity<>(customerDTO, HttpStatus.CREATED);
+        }
+    }
+
+    @DeleteMapping("/delete-avatar/{customerId}")
+    public ResponseEntity<?> deleteAvatar(@PathVariable Long customerId) throws IOException {
+
+        Optional<Customer> customerOptional = customerService.findById(customerId);
+
+        if (!customerOptional.isPresent()) {
+            throw new ResourceNotFoundException("Customer invalid");
+        }
+
+        Optional<CustomerAvatar> customerAvatar = customerAvatarService.findByCustomer(customerOptional.get());
+
+        String publicId = customerAvatar.get().getCloudId();
+
+
+        uploadService.destroyImage(publicId, uploadUtils.buildImageUploadParams(customerAvatar.get()));
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @PatchMapping("/{customerId}")
