@@ -4,6 +4,8 @@ import com.cg.exception.DataInputException;
 import com.cg.model.*;
 import com.cg.model.dto.CustomerCreateAvatarResDTO;
 import com.cg.model.dto.CustomerDTO;
+import com.cg.model.dto.CustomerResDTO;
+import com.cg.model.dto.CustomerUpdateAvatarResDTO;
 import com.cg.repository.*;
 import com.cg.service.uploadMedia.UploadService;
 import com.cg.utils.UploadUtils;
@@ -50,7 +52,12 @@ public class CustomerServiceImpl implements ICustomerService{
     }
 
     @Override
-    public List<CustomerDTO> findAllByDeletedIsFalse() {
+    public Optional<CustomerResDTO> findCustomerResDTOById(Long id) {
+        return customerRepository.findCustomerResDTOById(id);
+    }
+
+    @Override
+    public List<CustomerResDTO> findAllByDeletedIsFalse() {
         return customerRepository.findAllByDeletedIsFalse();
     }
 
@@ -91,6 +98,48 @@ public class CustomerServiceImpl implements ICustomerService{
         uploadAndSaveCustomerAvatar(avatarFile, customerAvatar);
 
         return new CustomerCreateAvatarResDTO(customer, locationRegion, customerAvatar.toCustomerAvatarDTO());
+    }
+
+    @Override
+    public CustomerUpdateAvatarResDTO update(Customer customer) {
+        LocationRegion locationRegion = customer.getLocationRegion();
+        locationRegionRepository.save(locationRegion);
+
+        customer.setLocationRegion(locationRegion);
+        customerRepository.save(customer);
+
+        CustomerAvatar customerAvatar = customerAvatarRepository.findByCustomer(customer).get();
+
+        return new CustomerUpdateAvatarResDTO(customer, locationRegion, customerAvatar.toCustomerAvatarDTO());
+    }
+
+    @Override
+    public CustomerUpdateAvatarResDTO updateWithAvatar(Customer customer, MultipartFile avatarFile) throws IOException {
+        LocationRegion locationRegion = customer.getLocationRegion();
+        locationRegionRepository.save(locationRegion);
+
+        customer.setLocationRegion(locationRegion);
+
+        customerRepository.save(customer);
+
+        Optional<CustomerAvatar> customerAvatarOptional = customerAvatarRepository.findByCustomer(customer);
+
+        CustomerAvatar customerAvatar = new CustomerAvatar();
+
+        if (!customerAvatarOptional.isPresent()) {
+            customerAvatar.setCustomer(customer);
+
+            customerAvatarRepository.save(customerAvatar);
+
+            uploadAndSaveCustomerAvatar(avatarFile, customerAvatar);
+        }
+        else {
+            customerAvatar = customerAvatarOptional.get();
+            uploadService.destroyImage(customerAvatar.getCloudId(), uploadUtils.buildImageUploadParams(customerAvatar));
+            uploadAndSaveCustomerAvatar(avatarFile, customerAvatar);
+        }
+
+        return new CustomerUpdateAvatarResDTO(customer, locationRegion, customerAvatar.toCustomerAvatarDTO());
     }
 
     private void uploadAndSaveCustomerAvatar(MultipartFile file, CustomerAvatar customerAvatar) {

@@ -49,16 +49,22 @@ public class CustomerAPI {
 
 
     @GetMapping
-    public ResponseEntity<List<CustomerDTO>> getAll() {
+    public ResponseEntity<?> getAll() {
 
 //        List<Customer> customers = customerService.findAll();
 
-        List<CustomerDTO> customerDTOS = customerService.findAllByDeletedIsFalse();
+        List<CustomerResDTO> customerResDTOS = customerService.findAllByDeletedIsFalse();
+        List<CustomerDTO> customerDTOS = new ArrayList<>();
 //
-//        for (Customer customer : customers) {
-//            CustomerDTO customerDTO = customer.toCustomerDTO();
-//            customerDTOS.add(customerDTO);
-//        }
+        for (CustomerResDTO item : customerResDTOS) {
+            CustomerAvatarDTO customerAvatarDTO = new CustomerAvatarDTO();
+            customerAvatarDTO.setId(item.getAvatarId());
+            customerAvatarDTO.setFileFolder(item.getFileFolder());
+            customerAvatarDTO.setFileName(item.getFileName());
+            customerAvatarDTO.setFileUrl(item.getFileUrl());
+            CustomerDTO customerDTO = item.toCustomerDTO(customerAvatarDTO);
+            customerDTOS.add(customerDTO);
+        }
 
         return new ResponseEntity<>(customerDTOS, HttpStatus.OK);
     }
@@ -66,14 +72,21 @@ public class CustomerAPI {
     @GetMapping("/{customerId}")
     public ResponseEntity<?> getById(@PathVariable Long customerId) {
 
-        Optional<Customer> customerOptional = customerService.findById(customerId);
+//        Optional<Customer> customerOptional = customerService.findById(customerId);
+        Optional<CustomerResDTO> customerResDTO = customerService.findCustomerResDTOById(customerId);
 
-        if (!customerOptional.isPresent()) {
+        if (!customerResDTO.isPresent()) {
             throw new ResourceNotFoundException("Customer not valid");
         }
 
-        Customer customer = customerOptional.get();
-        CustomerDTO customerDTO = customer.toCustomerDTO();
+        CustomerAvatarDTO customerAvatarDTO = new CustomerAvatarDTO();
+        customerAvatarDTO.setId(customerResDTO.get().getAvatarId());
+        customerAvatarDTO.setFileFolder(customerResDTO.get().getFileFolder());
+        customerAvatarDTO.setFileName(customerResDTO.get().getFileName());
+        customerAvatarDTO.setFileUrl(customerResDTO.get().getFileUrl());
+
+//        Customer customer = customerOptional.get();
+        CustomerDTO customerDTO = customerResDTO.get().toCustomerDTO(customerAvatarDTO);
 
         return new ResponseEntity<>(customerDTO, HttpStatus.OK);
     }
@@ -179,6 +192,37 @@ public class CustomerAPI {
         customerService.save(customer);
 
         return new ResponseEntity<>(customer.toCustomerDTO(), HttpStatus.OK);
+    }
+
+    @PatchMapping("/update-with-avatar/{customerId}")
+    public ResponseEntity<?> updateWithAvatar(@PathVariable Long customerId, MultipartFile file, CustomerUpdateReqDTO customerUpdateReqDTO, BindingResult bindingResult) throws IOException {
+        Optional<Customer> customerOptional = customerService.findById(customerId);
+
+        if (!customerOptional.isPresent()) {
+            throw new ResourceNotFoundException("Customer not found");
+        }
+
+        if (file == null) {
+            LocationRegionDTO locationRegionDTO = customerUpdateReqDTO.toLocationRegionDTO();
+
+            CustomerDTO customerDTO = customerUpdateReqDTO.toCustomerDTO(locationRegionDTO);
+            Customer customer = customerDTO.toCustomer();
+            customer.setId(customerId);
+
+            CustomerUpdateAvatarResDTO customerUpdateAvatarResDTO = customerService.update(customer);
+            return new ResponseEntity<>(customerUpdateAvatarResDTO, HttpStatus.OK);
+        }
+        else {
+            LocationRegionDTO locationRegionDTO = customerUpdateReqDTO.toLocationRegionDTO();
+
+            CustomerDTO customerDTO = customerUpdateReqDTO.toCustomerDTO(locationRegionDTO);
+            Customer customer = customerDTO.toCustomer();
+            customer.setId(customerId);
+
+            CustomerUpdateAvatarResDTO customerUpdateAvatarResDTO = customerService.updateWithAvatar(customer, file);
+
+            return new ResponseEntity<>(customerUpdateAvatarResDTO, HttpStatus.OK);
+        }
     }
 
 

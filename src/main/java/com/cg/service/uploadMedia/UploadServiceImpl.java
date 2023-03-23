@@ -1,6 +1,7 @@
 package com.cg.service.uploadMedia;
 
 import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,7 @@ public class UploadServiceImpl implements UploadService {
 
     @Override
     public Map destroyImage(String publicId, Map options) throws IOException {
+        options.put("invalidate", true);
         return cloudinary.uploader().destroy(publicId, options);
     }
 

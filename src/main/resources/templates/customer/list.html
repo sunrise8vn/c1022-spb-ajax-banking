@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="/assets/css/custom-style.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container-fluid">
         <header>
             <div class="col-lg-5 fl-l">
                 <h1>List of customers</h1>
@@ -41,6 +41,7 @@
                 <thead>
                 <tr>
                     <th>#</th>
+                    <th>Avatar</th>
                     <th>Full name</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -81,7 +82,7 @@
         </div>
 
         <th:block th:replace="customer/modal_create" />
-        <th:block th:replace="customer/modal_update" />
+        <th:block th:replace="customer/modal_update_avatar" />
     </div>
 
 
@@ -199,6 +200,8 @@
                 getAllCustomers: AppBase.API_CUSTOMER,
                 findCustomerById: AppBase.API_CUSTOMER,
                 doCreate: AppBase.API_CUSTOMER,
+                doCreateWithAvatar: AppBase.API_CUSTOMER + '/create-with-avatar',
+                doUpdateWithAvatar: AppBase.API_CUSTOMER + '/update-with-avatar',
                 incrementBalance: AppBase.API_CUSTOMER,
                 decrementBalance: AppBase.API_CUSTOMER,
                 insertDeposit: AppBase.API_DEPOSIT,
@@ -217,6 +220,7 @@
         let currentCustomerId;
 
         let locationRegion = new LocationRegion();
+        let customerAvatar = new CustomerAvatar();
         let customer = new Customer();
 
         page.elements.btnShowCreateModal = $('#btnShowCreateModal');
@@ -239,8 +243,8 @@
         page.dialogs.elements.wardUp = $('#wardUp');
         page.dialogs.elements.addressUp = $('#addressUp');
 
-        page.elements.btnCreateCustomer = $('#btnCreateCustomer');
-        page.elements.btnUpdateCustomer = $('#btnUpdate');
+        page.dialogs.elements.btnCreateCustomer = $('#btnCreateCustomer');
+        page.dialogs.elements.btnUpdateCustomer = $('#btnUpdateCustomer');
         page.elements.btnDeposit = $('#btnDeposit');
 
         page.dialogs.elements.modalUpdate = $('#modalUpdate');
@@ -268,58 +272,20 @@
         page.dialogs.elements.canvas = $("#canvas");
         page.dialogs.elements.context = page.dialogs.elements.canvas[0].getContext('2d');
         page.dialogs.elements.imagePreviewCanvas.css("display", "none");
-        page.dialogs.elements.divImagePreview = $("div.image-preview, div.file-name");
+        page.dialogs.elements.divImagePreview = $("#modalCreateCustomer div.image-preview, div.file-name");
+
+        page.dialogs.elements.imageFileUp = $("#imageFileUp");
+        page.dialogs.elements.imagePreviewCanvasUp = $("section .image-preview #canvasUp");
+        page.dialogs.elements.canvasUp = $("#canvasUp");
+        page.dialogs.elements.contextUp = page.dialogs.elements.canvasUp[0].getContext('2d');
+        page.dialogs.elements.imagePreviewCanvasUp.css("display", "none");
+        page.dialogs.elements.divImagePreviewUp = $("#modalUpdateCustomer div.image-preview, div.file-name");
+
         page.dialogs.elements.btnClearImagePreview = $(".clear-image-preview i");
 
 
-        page.elements.btnUpdateCustomer.on('click', () => {
-            let fullName = $('#fullNameUp').val();
-            let email = $('#emailUp').val();
-            let phone = $('#phoneUp').val();
-            let address = $('#addressUp').val();
-            let balance = 0;
-
-            let obj = {
-                fullName,
-                email,
-                phone,
-                address
-            }
-
-            page.loadData.findCustomerById(currentCustomerId).then((data) => {
-                $.ajax({
-                    headers: {
-                        'accept': 'application/json',
-                        'content-type': 'application/json'
-                    },
-                    type: 'PATCH',
-                    url: 'http://localhost:3300/customers/' + currentCustomerId,
-                    data: JSON.stringify(obj)
-                })
-                    .done((data) => {
-                        let str = renderCustomer(data);
-                        $('#tr_' + currentCustomerId).replaceWith(str);
-
-                        $('.edit').off('click');
-                        $('.delete').off('click');
-
-                        addEventEditClick();
-
-
-                        Swal.fire({
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Your work has been saved',
-                            showConfirmButton: false,
-                            timer: 2000
-                        })
-
-                        $('#modalUpdate').modal('hide');
-                    })
-                    .fail((error) => {
-                        console.log(error);
-                    })
-            })
+        page.dialogs.elements.btnUpdateCustomer.on('click', () => {
+            page.dialogs.commands.doUpdate();
         })
 
         page.elements.btnDeposit.on('click', () => {
@@ -452,7 +418,7 @@
                 })
         })
 
-        page.commands.doCreate = () => {
+        page.dialogs.commands.doCreate = () => {
             let fullName = page.dialogs.elements.fullNameCre.val();
             let email = page.dialogs.elements.emailCre.val();
             let phone = page.dialogs.elements.phoneCre.val();
@@ -464,39 +430,34 @@
             let wardName = page.dialogs.elements.wardCre.find("option:selected").text();
             let address = page.dialogs.elements.addressCre.val();
 
-            locationRegion = {
-                provinceId,
-                provinceName,
-                districtId,
-                districtName,
-                wardId,
-                wardName,
-                address
-            }
+            let avatarFile = page.dialogs.elements.imageFile[0].files[0];
 
-            let balance = 0;
-
-            let obj = {
-                fullName,
-                email,
-                phone,
-                locationRegion,
-                balance: 0
-            }
+            let formData = new FormData();
+            formData.append("fullName", fullName);
+            formData.append("email", email);
+            formData.append("phone", phone);
+            formData.append("provinceId", provinceId);
+            formData.append("provinceName", provinceName);
+            formData.append("districtId", districtId);
+            formData.append("districtName", districtName);
+            formData.append("wardId", wardId);
+            formData.append("wardName", wardName);
+            formData.append("address", address);
+            formData.append("file", avatarFile);
 
             $.ajax({
-                headers: {
-                    'accept': 'application/json',
-                    'content-type': 'application/json'
-                },
                 type: 'POST',
-                url: page.urls.doCreate,
-                data: JSON.stringify(obj)
+                contentType: false,
+                cache: false,
+                processData: false,
+                url: page.urls.doCreateWithAvatar,
+                data: formData
             })
                 .done((data) => {
                     customer = data;
                     locationRegion = customer.locationRegion;
-                    let str = renderCustomer(customer, locationRegion);
+                    customerAvatar = customer.customerAvatar;
+                    let str = renderCustomer(customer, customerAvatar, locationRegion);
                     $('#tbCustomer tbody').prepend(str);
 
                     Swal.fire({
@@ -508,6 +469,74 @@
                     })
 
                     page.dialogs.elements.modalCreateCustomer.modal('hide');
+
+
+                    $('.edit').off('click');
+                    $('.deposit').off('click');
+                    $('.delete').off('click');
+
+                    addEventEditClick();
+
+                    addEventDepositClick();
+
+                })
+                .fail((error) => {
+                    console.log(error);
+                })
+        }
+
+        page.dialogs.commands.doUpdate = () => {
+            let fullName = page.dialogs.elements.fullNameUp.val();
+            let email = page.dialogs.elements.emailUp.val();
+            let phone = page.dialogs.elements.phoneUp.val();
+            let provinceId = page.dialogs.elements.provinceUp.val();
+            let provinceName = page.dialogs.elements.provinceUp.find("option:selected").text();
+            let districtId = page.dialogs.elements.districtUp.val();
+            let districtName = page.dialogs.elements.districtUp.find("option:selected").text();
+            let wardId = page.dialogs.elements.wardUp.val();
+            let wardName = page.dialogs.elements.wardUp.find("option:selected").text();
+            let address = page.dialogs.elements.addressUp.val();
+
+            let avatarFile = page.dialogs.elements.imageFileUp[0].files[0];
+
+            let formData = new FormData();
+            formData.append("fullName", fullName);
+            formData.append("email", email);
+            formData.append("phone", phone);
+            formData.append("provinceId", provinceId);
+            formData.append("provinceName", provinceName);
+            formData.append("districtId", districtId);
+            formData.append("districtName", districtName);
+            formData.append("wardId", wardId);
+            formData.append("wardName", wardName);
+            formData.append("address", address);
+            formData.append("file", avatarFile);
+
+            $.ajax({
+                type: 'PATCH',
+                contentType: false,
+                cache: false,
+                processData: false,
+                url: page.urls.doUpdateWithAvatar + '/' + currentCustomerId,
+                data: formData
+            })
+                .done((data) => {
+                    console.log(data)
+                    customer = data;
+                    locationRegion = customer.locationRegion;
+                    customerAvatar = customer.customerAvatar;
+                    let str = renderCustomer(customer, customerAvatar, locationRegion);
+                    $('#tr_' + currentCustomerId).replaceWith(str);
+
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Your work has been saved',
+                        showConfirmButton: false,
+                        timer: 2000
+                    })
+
+                    page.dialogs.elements.modalUpdateCustomer.modal('hide');
 
 
                     $('.edit').off('click');
@@ -605,6 +634,7 @@
                 page.loadData.findCustomerById(customerId).then((data) => {
                     customer = data;
                     locationRegion = customer.locationRegion;
+                    customerAvatar = customer.customerAvatar;
                     currentCustomerId = customerId;
                     page.dialogs.elements.fullNameUp.val(customer.fullName);
                     page.dialogs.elements.emailUp.val(customer.email);
@@ -619,7 +649,9 @@
                         });
                     });
 
-                    page.dialogs.elements.addressUp.val(customer.address);
+                    page.dialogs.elements.addressUp.val(locationRegion.address);
+
+                    page.dialogs.commands.loadImageToCanvas(null, "URL", customerAvatar.fileUrl);
 
                     page.dialogs.elements.modalUpdateCustomer.modal('show');
                 })
@@ -683,10 +715,16 @@
             })
         }
 
-        function renderCustomer(customer, locationRegion) {
+        function renderCustomer(customer, avatar, locationRegion) {
+            let image_thumbnail = `
+                ${AppBase.API_CLOUDINARY}/${AppBase.SCALE_IMAGE_W_80_H_80_Q_100}/${avatar.fileFolder}/${avatar.fileName}
+            `;
             return `
                     <tr id="tr_${customer.id}">
                         <td>${customer.id}</td>
+                        <td>
+                            <img src="${image_thumbnail}" alt="">
+                        </td>
                         <td>${customer.fullName}</td>
                         <td>${customer.email}</td>
                         <td>${customer.phone}</td>
@@ -764,12 +802,12 @@
                     $.each(data, (i, item) => {
                         customer = item;
                         locationRegion = customer.locationRegion;
-                        let str = renderCustomer(customer, locationRegion);
+                        customerAvatar = customer.customerAvatar;
+                        let str = renderCustomer(customer, customerAvatar, locationRegion);
                         $('#tbCustomer tbody').prepend(str);
                     })
 
                     addEventEditClick();
-
 
                     addEventDepositClick();
 
@@ -860,8 +898,12 @@
                 })
         }
 
-        page.dialogs.commands.loadImageToCanvas = (imageFile) => {
+        page.dialogs.commands.loadImageToCanvas = (imageFile, fileType, imageUrl) => {
             page.dialogs.elements.imagePreviewCanvas.css("display", "");
+            page.dialogs.elements.wrapper.addClass("active");
+            page.dialogs.elements.wrapperContent.css("opacity", 0);
+
+            page.dialogs.elements.imagePreviewCanvasUp.css("display", "");
             page.dialogs.elements.wrapper.addClass("active");
             page.dialogs.elements.wrapperContent.css("opacity", 0);
 
@@ -871,30 +913,40 @@
                 page.dialogs.elements.context.canvas.width = imageObj.width;
                 page.dialogs.elements.context.canvas.height = imageObj.height;
                 page.dialogs.elements.context.drawImage(imageObj, 0, 0, imageObj.width, imageObj.height);
+
+                page.dialogs.elements.contextUp.canvas.width = 445;
+                page.dialogs.elements.contextUp.canvas.height = 345;
+                page.dialogs.elements.contextUp.drawImage(imageObj, 0, 0, 445, 345);
             };
 
-            imageObj.src = URL.createObjectURL(imageFile)
+            if (fileType === "BINARY") {
+                imageObj.src = URL.createObjectURL(imageFile);
+            }
+            else {
+                imageObj.src = imageUrl;
+            }
         }
 
-        page.dialogs.commands.changeImagePreview = () => {
-            let imageFile = page.dialogs.elements.imageFile[0].files[0];
+        page.dialogs.commands.changeImagePreview = (elem) => {
+            let imageFile = elem[0].files[0];
 
             if (imageFile) {
                 let reader = new FileReader();
 
                 reader.readAsDataURL(imageFile);
 
-                reader.onload = function(e){
+                reader.onload = function (e) {
                     if (e.target.readyState === FileReader.DONE) {
-                        page.dialogs.commands.loadImageToCanvas(imageFile);
+                        page.dialogs.commands.loadImageToCanvas(imageFile, "BINARY", null);
                     }
                 }
-            } else {
+            }
+            else {
                 page.dialogs.elements.clearImagePreview();
             }
         }
 
-        page.dialogs.elements.clearImagePreview = () => {
+        page.dialogs.commands.clearImagePreview = () => {
             page.dialogs.elements.imageFile.val("");
             page.dialogs.elements.imagePreviewCanvas.css("display", "none");
             page.dialogs.elements.wrapper.removeClass("active");
@@ -941,16 +993,28 @@
                 page.dialogs.elements.imageFile.trigger('click');
             })
 
+            page.dialogs.elements.divImagePreviewUp.on('click', () => {
+                page.dialogs.elements.imageFileUp.trigger('click');
+            })
+
             page.dialogs.elements.imageFile.on("change", function () {
-                page.dialogs.commands.changeImagePreview();
+                page.dialogs.commands.changeImagePreview(page.dialogs.elements.imageFile);
             });
+
+            page.dialogs.elements.imageFileUp.on("change", function () {
+                page.dialogs.commands.changeImagePreview(page.dialogs.elements.imageFileUp);
+            });
+
+            page.dialogs.elements.btnClearImagePreview.on('click', () => {
+                page.dialogs.commands.clearImagePreview();
+            })
 
             page.elements.btnShowCreateModal.on('click', () => {
                 page.dialogs.elements.modalCreateCustomer.modal('show');
             })
 
-            page.elements.btnCreateCustomer.on('click', function () {
-                page.commands.doCreate();
+            page.dialogs.elements.btnCreateCustomer.on('click', function () {
+                page.dialogs.commands.doCreate();
             });
 
             page.commands.addEventChangeTransferAmount();

@@ -1,6 +1,7 @@
 package com.cg.model.dto;
 
 import com.cg.model.Customer;
+import com.cg.model.CustomerAvatar;
 import com.cg.model.LocationRegion;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -38,6 +39,16 @@ public class CustomerDTO implements Validator {
         this.phone = phone;
         this.balance = balance;
         this.locationRegion = locationRegion.toLocationRegionDTO();
+    }
+
+    public CustomerDTO(Long id, String fullName, String email, String phone, BigDecimal balance, LocationRegion locationRegion, CustomerAvatar customerAvatar) {
+        this.id = id;
+        this.fullName = fullName;
+        this.email = email;
+        this.phone = phone;
+        this.balance = balance;
+        this.locationRegion = locationRegion.toLocationRegionDTO();
+        this.customerAvatar = customerAvatar.toCustomerAvatarDTO();
     }
 
     @Override

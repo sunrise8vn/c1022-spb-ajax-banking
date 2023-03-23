@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700&display=swap');
 
-.container .wrapper{
+.container-fluid .wrapper{
     position: relative;
     height: 345px;
     width: 100%;
@@ -81,7 +81,7 @@
     display: block;
 }
 
-.container #custom-btn{
+.container-fluid #custom-btn{
     margin-top: 30px;
     display: block;
     width: 100%;
@@ -102,4 +102,12 @@ canvas {
     width: 100%;
     height: 100%;
     position: relative;
+}
+
+
+table tr td img {
+    max-height: 60px;
+    max-width: 80px;
+    height: 60px;
+    width: 60px;
 }

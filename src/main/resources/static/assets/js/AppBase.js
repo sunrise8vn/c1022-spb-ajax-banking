@@ -12,6 +12,11 @@ class AppBase {
     static API_TRANSFER = this.API_SERVER + '/transfers';
 
     static API_PROVINCE = "https://vapi.vnappmob.com/api/province";
+
+    static API_CLOUDINARY = 'https://res.cloudinary.com/toanphat/image/upload';
+
+    static SCALE_IMAGE_W_80_H_80_Q_100 = 'c_limit,w_80,h_80,q_100';
+    static SCALE_IMAGE_W_80_H_80_Q_85 = 'c_limit,w_80,h_80,q_85';
 }
 
 class LocationRegion {
@@ -27,9 +32,20 @@ class LocationRegion {
     }
 }
 
-class Customer {
-    constructor(id, fullName, email, phone, locationRegion, balance) {
+class CustomerAvatar {
+    constructor(id, fileFolder, fileName, fileUrl) {
         this.id = id;
+        this.fileFolder = fileFolder;
+        this.fileName = fileName;
+        this.fileUrl = fileUrl;
+    }
+
+}
+
+class Customer {
+    constructor(id, customerAvatar, fullName, email, phone, locationRegion, balance) {
+        this.id = id;
+        this.customerAvatar = customerAvatar;
         this.fullName = fullName;
         this.email = email;
         this.phone = phone;
