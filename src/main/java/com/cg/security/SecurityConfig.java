@@ -72,7 +72,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                         "/logout",
                         "/api/staffs/create",
                         "/api/customers/create-with-avatar",
-                        "/api/customers/delete-avatar/*"
+                        "/api/customers/delete-avatar/*",
+                        "/api/products/**"
                 ).permitAll()
                 .antMatchers("/transfers").hasAnyAuthority("ADMIN")
                 .antMatchers("/resources/**", "/assets/**").permitAll()

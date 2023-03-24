@@ -135,7 +135,7 @@ public class CustomerServiceImpl implements ICustomerService{
         }
         else {
             customerAvatar = customerAvatarOptional.get();
-            uploadService.destroyImage(customerAvatar.getCloudId(), uploadUtils.buildImageUploadParams(customerAvatar));
+            uploadService.destroyImage(customerAvatar.getCloudId(), uploadUtils.buildCustomerImageUploadParams(customerAvatar));
             uploadAndSaveCustomerAvatar(avatarFile, customerAvatar);
         }
 
@@ -144,13 +144,13 @@ public class CustomerServiceImpl implements ICustomerService{
 
     private void uploadAndSaveCustomerAvatar(MultipartFile file, CustomerAvatar customerAvatar) {
         try {
-            Map uploadResult = uploadService.uploadImage(file, uploadUtils.buildImageUploadParams(customerAvatar));
+            Map uploadResult = uploadService.uploadImage(file, uploadUtils.buildCustomerImageUploadParams(customerAvatar));
             String fileUrl = (String) uploadResult.get("secure_url");
             String fileFormat = (String) uploadResult.get("format");
 
             customerAvatar.setFileName(customerAvatar.getId() + "." + fileFormat);
             customerAvatar.setFileUrl(fileUrl);
-            customerAvatar.setFileFolder(uploadUtils.IMAGE_UPLOAD_FOLDER);
+            customerAvatar.setFileFolder(uploadUtils.CUSTOMER_IMAGE_UPLOAD_FOLDER);
             customerAvatar.setCloudId(customerAvatar.getFileFolder() + "/" + customerAvatar.getId());
             customerAvatarRepository.save(customerAvatar);
 

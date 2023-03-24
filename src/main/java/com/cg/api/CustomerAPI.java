@@ -5,7 +5,6 @@ import com.cg.exception.ResourceNotFoundException;
 import com.cg.model.Customer;
 import com.cg.model.CustomerAvatar;
 import com.cg.model.Deposit;
-import com.cg.model.LocationRegion;
 import com.cg.model.dto.*;
 import com.cg.service.customer.ICustomerService;
 import com.cg.service.customerAvatar.ICustomerAvatarService;
@@ -167,7 +166,7 @@ public class CustomerAPI {
         String publicId = customerAvatar.get().getCloudId();
 
 
-        uploadService.destroyImage(publicId, uploadUtils.buildImageUploadParams(customerAvatar.get()));
+        uploadService.destroyImage(publicId, uploadUtils.buildCustomerImageUploadParams(customerAvatar.get()));
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
